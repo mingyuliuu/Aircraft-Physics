@@ -14,6 +14,8 @@ public class AirplaneController : MonoBehaviour
     float pitchControlSensitivity = 0.2f;
     [SerializeField]
     float yawControlSensitivity = 0.2f;
+    [SerializeField]
+    float thrustControlSensitivity = 0.2f;
 
     [Range(-1, 1)]
     public float Pitch;
@@ -32,6 +34,10 @@ public class AirplaneController : MonoBehaviour
     AircraftPhysics aircraftPhysics;
     Rigidbody rb;
 
+    // Unit conversion rates
+    float knotsConversionFactor = 1.9438444924f;
+    float feetConversionFactor = 3.28084f;
+
     private void Start()
     {
         aircraftPhysics = GetComponent<AircraftPhysics>();
@@ -44,9 +50,14 @@ public class AirplaneController : MonoBehaviour
         Roll = Input.GetAxis("Horizontal");
         Yaw = Input.GetAxis("Yaw");
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        // In(De)crease thrust progressively
+        if (Input.GetKeyDown(KeyCode.Comma))
         {
-            thrustPercent = thrustPercent > 0 ? 0 : 1f;
+            SetThrust(true);
+        }
+        if (Input.GetKeyDown(KeyCode.Period))
+        {
+            SetThrust();
         }
 
         if (Input.GetKeyDown(KeyCode.F))
@@ -59,8 +70,8 @@ public class AirplaneController : MonoBehaviour
             brakesTorque = brakesTorque > 0 ? 0 : 100f;
         }
 
-        displayText.text = "V: " + ((int)rb.velocity.magnitude).ToString("D3") + " m/s\n";
-        displayText.text += "A: " + ((int)transform.position.y).ToString("D4") + " m\n";
+        displayText.text = "V: " + ((int)ConvertSpeedUnit(rb.velocity.magnitude)).ToString("D3") + " knots\n";
+        displayText.text += "A: " + ((int)ConvertLengthUnit(transform.position.y)).ToString("D4") + " feet\n";
         displayText.text += "T: " + (int)(thrustPercent * 100) + "%\n";
         displayText.text += brakesTorque > 0 ? "B: ON" : "B: OFF";
     }
@@ -75,6 +86,21 @@ public class AirplaneController : MonoBehaviour
             // small torque to wake up wheel collider
             wheel.motorTorque = 0.01f;
         }
+    }
+
+    private void SetThrust(bool decrease = false)
+    {
+        if (decrease)
+        {
+            float percent = thrustPercent - thrustControlSensitivity;
+            thrustPercent = Mathf.Clamp01(percent);
+        }
+        else
+        {
+            float percent = thrustPercent + thrustControlSensitivity;
+            thrustPercent = Mathf.Clamp01(percent);
+        }
+        Debug.Log("Changing Thrust To: " + thrustPercent);
     }
 
     public void SetControlSurfecesAngles(float pitch, float roll, float yaw, float flap)
@@ -104,5 +130,17 @@ public class AirplaneController : MonoBehaviour
     {
         if (!Application.isPlaying)
             SetControlSurfecesAngles(Pitch, Roll, Yaw, Flap);
+    }
+
+    // Convert the unit of speed from "m/s" to "knots" 
+    private float ConvertSpeedUnit(float mps)
+    {
+        return mps * knotsConversionFactor;
+    }
+
+    // Convert the unit of length from "meters" to "feet" 
+    private float ConvertLengthUnit(float m)
+    {
+        return m * feetConversionFactor;
     }
 }
