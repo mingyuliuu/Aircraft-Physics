@@ -38,6 +38,11 @@ public class AirplaneController : MonoBehaviour
     float knotsConversionFactor = 1.9438444924f;
     float feetConversionFactor = 3.28084f;
 
+    // States of controller button presses (to make sure button click events are only triggered once in Update())
+    bool isXPressed = false;
+    bool isYPressed = false;
+    bool isAPressed = false;
+
     private void Start()
     {
         aircraftPhysics = GetComponent<AircraftPhysics>();
@@ -50,24 +55,59 @@ public class AirplaneController : MonoBehaviour
         Roll = Input.GetAxis("Horizontal");
         Yaw = Input.GetAxis("Yaw");
 
-        // In(De)crease thrust progressively
+        // Decrease thrust progressively
+        // < on keyboard; X on left controller
         if (Input.GetKeyDown(KeyCode.Comma))
         {
             SetThrust(true);
         }
+        if (!isXPressed && OVRInput.Get(OVRInput.Button.Three))
+        {
+            isXPressed = true;
+            SetThrust(true);
+        }
+        if (isXPressed && !OVRInput.Get(OVRInput.Button.Three))
+        {
+            isXPressed = false;
+        }
+
+        // Increase thrust progressively
+        // > on keyboard; Y on left controller
         if (Input.GetKeyDown(KeyCode.Period))
         {
             SetThrust();
         }
+        if (!isYPressed && OVRInput.Get(OVRInput.Button.Four))
+        {
+            isYPressed = true;
+            SetThrust();
+        }
+        if (isYPressed && !OVRInput.Get(OVRInput.Button.Four))
+        {
+            isYPressed = false;
+        }
 
+        // Flap
+        // F on keyboard
         if (Input.GetKeyDown(KeyCode.F))
         {
             Flap = Flap > 0 ? 0 : 0.3f;
         }
 
-        if (Input.GetKeyDown(KeyCode.B))
+        // Brake
+        // Space on keyboard; A on right controller
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            brakesTorque = brakesTorque > 0 ? 0 : 100f;
+            SetBrake();
+        }
+        if (!isAPressed && OVRInput.Get(OVRInput.Button.One))
+        {
+            isAPressed = true;
+            SetBrake();
+        }
+        if (isAPressed && !OVRInput.Get(OVRInput.Button.One))
+        {
+            isAPressed = false;
         }
 
         displayText.text = "V: " + ((int)ConvertSpeedUnit(rb.velocity.magnitude)).ToString("D3") + " knots\n";
@@ -101,6 +141,12 @@ public class AirplaneController : MonoBehaviour
             thrustPercent = Mathf.Clamp01(percent);
         }
         Debug.Log("Changing Thrust To: " + thrustPercent);
+    }
+
+    private void SetBrake()
+    {
+        brakesTorque = brakesTorque > 0 ? 0 : 100f;
+        Debug.Log("Changing Brake To: " + brakesTorque);
     }
 
     public void SetControlSurfecesAngles(float pitch, float roll, float yaw, float flap)
